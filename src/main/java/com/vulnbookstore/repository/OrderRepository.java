@@ -1,0 +1,22 @@
+package com.vulnbookstore.repository;
+
+import com.vulnbookstore.model.Order;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+
+/**
+ * Repository interface for Order entity.
+ */
+@Repository
+public interface OrderRepository extends JpaRepository<Order, Long> {
+
+    List<Order> findByUserId(Long userId);
+
+    List<Order> findByBookId(Long bookId);
+
+    List<Order> findByStatus(String status);
+
+    List<Order> findByUserIdAndStatus(Long userId, String status);
+}

@@ -1,0 +1,118 @@
+# ============================================================
+# VulnBookStore — .gitignore
+# Standard Java/Maven/Spring Boot gitignore
+# ============================================================
+
+# ============================================================
+# Maven build output
+# ============================================================
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# Maven wrapper
+.mvn/wrapper/maven-wrapper.properties
+
+# ============================================================
+# IDE — IntelliJ IDEA
+# ============================================================
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+!**/src/main/**/out/
+!**/src/test/**/out/
+
+# ============================================================
+# IDE — Eclipse
+# ============================================================
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+# ============================================================
+# IDE — VS Code
+# ============================================================
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+# ============================================================
+# IDE — NetBeans
+# ============================================================
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+# ============================================================
+# Spring Boot
+# ============================================================
+spring-shell.log
+
+# ============================================================
+# Logs
+# ============================================================
+*.log
+logs/
+log/
+
+# ============================================================
+# OS generated files
+# ============================================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ============================================================
+# Java
+# ============================================================
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+hs_err_pid*
+replay_pid*
+
+# ============================================================
+# Test reports
+# ============================================================
+surefire-reports/
+failsafe-reports/
+
+# ============================================================
+# OWASP Dependency Check reports
+# ============================================================
+reports/
+dependency-check-report.*
+
+# ============================================================
+# Environment / secrets
+# (Real secrets should never be committed — this project uses
+# intentionally fake hardcoded secrets for educational purposes)
+# ============================================================
+.env
+.env.local
+.env.*.local
+secrets.properties
+application-prod.properties
+application-production.properties
