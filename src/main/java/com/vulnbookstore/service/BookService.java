@@ -85,11 +85,11 @@ public class BookService {
      */
     @SuppressWarnings("unchecked")
     public List<Book> searchBooks(String query) {
-        // Build raw SQL with string concatenation — never do this in production!
-        String sql = "SELECT * FROM books WHERE title LIKE '%" + query + "%' " +
-                     "OR author LIKE '%" + query + "%'";
-        logger.debug("Executing search query: {}", sql);
-        return entityManager.createNativeQuery(sql, Book.class).getResultList();
+        String sql = "SELECT * FROM books WHERE title LIKE :pattern OR author LIKE :pattern";
+        logger.debug("Executing parameterized search query");
+        return entityManager.createNativeQuery(sql, Book.class)
+                .setParameter("pattern", "%" + query + "%")
+                .getResultList();
     }
 
     /**
@@ -106,23 +106,26 @@ public class BookService {
      * TODO: validate format against an allowlist before use
      */
     public String exportBookData(String format) {
+        // Validate format against an allowlist to prevent command injection
+        if (!format.equals("csv") && !format.equals("json") && !format.equals("xml")) {
+            return "Export error: unsupported format";
+        }
         try {
-            // Simulate writing data to a temp file then converting format
-            String exportScript = "/opt/bookstore/scripts/export.sh " + format;
             logger.info("Running export with format: {}", format);
 
-            // ⚠️ VULNERABILITY: Runtime.exec() with unsanitized user input
-            Process process = Runtime.getRuntime().exec(exportScript);
+            // Pass format as a separate argument to avoid shell command injection
+            Process process = Runtime.getRuntime().exec(
+                    new String[]{"/opt/bookstore/scripts/export.sh", format});
             int exitCode = process.waitFor();
 
             if (exitCode == 0) {
-                return "Export completed successfully in format: " + format;
+                return "Export completed successfully";
             } else {
                 return "Export failed with exit code: " + exitCode;
             }
         } catch (Exception e) {
             logger.error("Export failed: {}", e.getMessage());
-            return "Export error: " + e.getMessage();
+            return "Export failed";
         }
     }
 }
