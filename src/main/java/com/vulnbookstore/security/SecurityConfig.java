@@ -4,7 +4,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -31,25 +30,10 @@ public class SecurityConfig {
 
     /**
      * Security filter chain configuration.
-     *
-     * ⚠️ VULNERABILITY 1: CSRF protection is disabled.
-     * This makes the application vulnerable to Cross-Site Request Forgery attacks.
-     * Comment says "disabled for simplicity" — a common but dangerous shortcut.
-     *
-     * ⚠️ VULNERABILITY 2: All requests are permitted without authentication.
-     * This is overly permissive — broken access control at the framework level.
-     * Even "protected" endpoints are accessible to unauthenticated users.
-     *
-     * ⚠️ VULNERABILITY 3: H2 console is accessible to all, and frame options
-     * are disabled to allow the H2 console iframe to render.
      */
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            // ⚠️ VULNERABILITY: CSRF disabled for "simplicity"
-            .csrf(AbstractHttpConfigurer::disable)
-
-            // ⚠️ VULNERABILITY: All endpoints are publicly accessible
             .authorizeHttpRequests(auth -> auth
                 .anyRequest().permitAll()
             )
