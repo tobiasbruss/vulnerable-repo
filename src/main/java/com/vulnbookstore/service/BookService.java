@@ -85,11 +85,11 @@ public class BookService {
      */
     @SuppressWarnings("unchecked")
     public List<Book> searchBooks(String query) {
-        // Build raw SQL with string concatenation — never do this in production!
-        String sql = "SELECT * FROM books WHERE title LIKE '%" + query + "%' " +
-                     "OR author LIKE '%" + query + "%'";
-        logger.debug("Executing search query: {}", sql);
-        return entityManager.createNativeQuery(sql, Book.class).getResultList();
+        String sql = "SELECT * FROM books WHERE title LIKE :pattern OR author LIKE :pattern";
+        String pattern = "%" + query + "%";
+        return entityManager.createNativeQuery(sql, Book.class)
+                .setParameter("pattern", pattern)
+                .getResultList();
     }
 
     /**
@@ -106,23 +106,23 @@ public class BookService {
      * TODO: validate format against an allowlist before use
      */
     public String exportBookData(String format) {
+        if (!format.equals("csv") && !format.equals("json") && !format.equals("xml")) {
+            return "Export error: unsupported format";
+        }
         try {
-            // Simulate writing data to a temp file then converting format
-            String exportScript = "/opt/bookstore/scripts/export.sh " + format;
+            String[] command = {"/opt/bookstore/scripts/export.sh", format};
             logger.info("Running export with format: {}", format);
-
-            // ⚠️ VULNERABILITY: Runtime.exec() with unsanitized user input
-            Process process = Runtime.getRuntime().exec(exportScript);
+            Process process = Runtime.getRuntime().exec(command);
             int exitCode = process.waitFor();
 
             if (exitCode == 0) {
                 return "Export completed successfully in format: " + format;
             } else {
-                return "Export failed with exit code: " + exitCode;
+                return "Export failed";
             }
         } catch (Exception e) {
-            logger.error("Export failed: {}", e.getMessage());
-            return "Export error: " + e.getMessage();
+            logger.error("Export failed", e);
+            return "Export error";
         }
     }
 }

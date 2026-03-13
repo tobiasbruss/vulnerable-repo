@@ -4,7 +4,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -46,8 +46,14 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            // ⚠️ VULNERABILITY: CSRF disabled for "simplicity"
-            .csrf(AbstractHttpConfigurer::disable)
+            // Stateless session management: no HttpSession created, so CSRF via session cookies is not applicable.
+            // CSRF protection for the REST API endpoints is omitted via ignoringRequestMatchers.
+            .sessionManagement(session -> session
+                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+            )
+            .csrf(csrf -> csrf
+                .ignoringRequestMatchers("/api/**", "/h2-console/**")
+            )
 
             // ⚠️ VULNERABILITY: All endpoints are publicly accessible
             .authorizeHttpRequests(auth -> auth
