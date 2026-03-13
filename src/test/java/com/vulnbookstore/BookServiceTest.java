@@ -4,7 +4,7 @@ import com.vulnbookstore.model.Book;
 import com.vulnbookstore.repository.BookRepository;
 import com.vulnbookstore.service.BookService;
 import jakarta.persistence.EntityManager;
-import jakarta.persistence.Query;
+import jakarta.persistence.TypedQuery;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -43,7 +43,7 @@ class BookServiceTest {
     private EntityManager entityManager;
 
     @Mock
-    private Query nativeQuery;
+    private TypedQuery<Book> typedQuery;
 
     @InjectMocks
     private BookService bookService;
@@ -212,10 +212,7 @@ class BookServiceTest {
     }
 
     // ----------------------------------------------------------------
-    // searchBooks()
-    // Note: This test verifies functional behavior only.
-    // The SQL injection vulnerability in searchBooks() is intentional
-    // and is NOT tested here — it is meant to be detected by CodeQL.
+    // searchBooks() — uses JPQL parameterized query (no SQL injection)
     // ----------------------------------------------------------------
 
     @Test
@@ -223,9 +220,11 @@ class BookServiceTest {
     void searchBooks_returnsMatchingBooks() {
         List<Book> expected = List.of(sampleBook1);
 
-        when(entityManager.createNativeQuery(anyString(), eq(Book.class)))
-                .thenReturn(nativeQuery);
-        when(nativeQuery.getResultList()).thenReturn(expected);
+        when(entityManager.createQuery(anyString(), eq(Book.class)))
+                .thenReturn(typedQuery);
+        when(typedQuery.setParameter(anyString(), anyString()))
+                .thenReturn(typedQuery);
+        when(typedQuery.getResultList()).thenReturn(expected);
 
         List<Book> result = bookService.searchBooks("Clean");
 
@@ -236,12 +235,34 @@ class BookServiceTest {
     @Test
     @DisplayName("searchBooks() returns empty list when no matches found")
     void searchBooks_returnsEmptyList_whenNoMatches() {
-        when(entityManager.createNativeQuery(anyString(), eq(Book.class)))
-                .thenReturn(nativeQuery);
-        when(nativeQuery.getResultList()).thenReturn(Collections.emptyList());
+        when(entityManager.createQuery(anyString(), eq(Book.class)))
+                .thenReturn(typedQuery);
+        when(typedQuery.setParameter(anyString(), anyString()))
+                .thenReturn(typedQuery);
+        when(typedQuery.getResultList()).thenReturn(Collections.emptyList());
 
         List<Book> result = bookService.searchBooks("nonexistent");
 
         assertThat(result).isEmpty();
+    }
+
+    @Test
+    @DisplayName("searchBooks() uses parameterized query — SQL injection characters are treated as literals")
+    void searchBooks_sqlInjectionInputTreatedAsLiteral() {
+        // A SQL injection string should just be passed as a bind parameter value,
+        // not interpreted as SQL. The mock verifies setParameter is called with
+        // the raw user input wrapped in % wildcards.
+        String maliciousInput = "' OR '1'='1";
+
+        when(entityManager.createQuery(anyString(), eq(Book.class)))
+                .thenReturn(typedQuery);
+        when(typedQuery.setParameter(eq("pattern"), eq("%" + maliciousInput + "%")))
+                .thenReturn(typedQuery);
+        when(typedQuery.getResultList()).thenReturn(Collections.emptyList());
+
+        List<Book> result = bookService.searchBooks(maliciousInput);
+
+        assertThat(result).isEmpty();
+        verify(typedQuery).setParameter("pattern", "%" + maliciousInput + "%");
     }
 }
