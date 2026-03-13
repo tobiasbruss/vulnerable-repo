@@ -76,27 +76,29 @@ public class BookController {
 
     /**
      * Render a book's description as HTML.
-     *
-     * ⚠️ VULNERABILITY: Cross-Site Scripting (XSS) — the book description is
-     * embedded directly into an HTML response without escaping. If a book's
-     * description contains JavaScript (e.g., <script>alert(1)</script>), it
-     * will execute in the victim's browser.
-     *
-     * This is an obvious XSS vulnerability — user-controlled data rendered as HTML.
+     * All user-supplied fields are HTML-escaped to prevent XSS.
      */
     @GetMapping("/{id}/render-description")
     public ResponseEntity<String> renderDescription(@PathVariable Long id) {
         return bookService.getBookById(id).map(book -> {
-            // ⚠️ VULNERABILITY: unescaped user content embedded in HTML
             String html = "<html><body>" +
-                          "<h1>" + book.getTitle() + "</h1>" +
-                          "<h2>by " + book.getAuthor() + "</h2>" +
-                          "<div class=\"description\">" + book.getDescription() + "</div>" +
+                          "<h1>" + escapeHtml(book.getTitle()) + "</h1>" +
+                          "<h2>by " + escapeHtml(book.getAuthor()) + "</h2>" +
+                          "<div class=\"description\">" + escapeHtml(book.getDescription()) + "</div>" +
                           "</body></html>";
             return ResponseEntity.ok()
                     .header("Content-Type", "text/html")
                     .body(html);
         }).orElse(ResponseEntity.notFound().build());
+    }
+
+    private String escapeHtml(String input) {
+        if (input == null) return "";
+        return input.replace("&", "&amp;")
+                    .replace("<", "&lt;")
+                    .replace(">", "&gt;")
+                    .replace("\"", "&quot;")
+                    .replace("'", "&#x27;");
     }
 
     /**
