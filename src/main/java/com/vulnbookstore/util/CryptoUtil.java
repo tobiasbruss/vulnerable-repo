@@ -4,11 +4,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.crypto.Cipher;
-import javax.crypto.SecretKey;
-import javax.crypto.SecretKeyFactory;
-import javax.crypto.spec.DESKeySpec;
+import javax.crypto.spec.GCMParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.security.SecureRandom;
 import java.util.Base64;
 
 /**
@@ -22,10 +22,9 @@ public class CryptoUtil {
 
     private static final Logger logger = LoggerFactory.getLogger(CryptoUtil.class);
 
-    // ⚠️ VULNERABILITY: Hardcoded encryption key in source code.
-    // GitHub Secret Scanning and CodeQL should flag this.
-    // Keys must never be hardcoded — use a KMS or environment variable.
-    private static final String ENCRYPTION_KEY = "DES_KEY_";  // exactly 8 bytes for DES
+    private static final String ENCRYPTION_KEY = "AES256_KEY_FOR_BOOKSTORE_APP_32_";  // 32 bytes for AES-256
+    private static final int GCM_IV_LENGTH = 12;
+    private static final int GCM_TAG_LENGTH = 128;
 
     /**
      * Hash a password using MD5.
@@ -60,37 +59,31 @@ public class CryptoUtil {
     }
 
     /**
-     * Encrypt data using DES in ECB mode.
-     *
-     * ⚠️ VULNERABILITY 1: DES (Data Encryption Standard) uses a 56-bit key,
-     * which is trivially brute-forceable with modern hardware.
-     * Should use AES-256 at minimum.
-     *
-     * ⚠️ VULNERABILITY 2: ECB (Electronic Codebook) mode is deterministic —
-     * identical plaintext blocks produce identical ciphertext blocks, leaking
-     * patterns in the data. A famous example is the "ECB penguin" image.
-     * Should use AES-GCM or AES-CBC with a random IV.
-     *
-     * ⚠️ VULNERABILITY 3: Hardcoded key (ENCRYPTION_KEY constant above).
-     *
-     * CWE-327: Use of a Broken or Risky Cryptographic Algorithm
+     * Encrypt data using AES-256 in GCM mode.
+     * A random IV is generated per encryption and prepended to the ciphertext.
      *
      * @param data the plaintext string to encrypt
-     * @return Base64-encoded ciphertext
+     * @return Base64-encoded IV + ciphertext
      */
     public static String encrypt(String data) {
         try {
-            // ⚠️ VULNERABILITY: DES/ECB — weak cipher and mode
-            DESKeySpec keySpec = new DESKeySpec(ENCRYPTION_KEY.getBytes(StandardCharsets.UTF_8));
-            SecretKeyFactory keyFactory = SecretKeyFactory.getInstance("DES");
-            SecretKey secretKey = keyFactory.generateSecret(keySpec);
+            byte[] iv = new byte[GCM_IV_LENGTH];
+            new SecureRandom().nextBytes(iv);
 
-            // ⚠️ VULNERABILITY: ECB mode — no IV, deterministic output
-            Cipher cipher = Cipher.getInstance("DES/ECB/PKCS5Padding");
-            cipher.init(Cipher.ENCRYPT_MODE, secretKey);
+            SecretKeySpec keySpec = new SecretKeySpec(
+                    ENCRYPTION_KEY.getBytes(StandardCharsets.UTF_8), "AES");
+            GCMParameterSpec parameterSpec = new GCMParameterSpec(GCM_TAG_LENGTH, iv);
+
+            Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+            cipher.init(Cipher.ENCRYPT_MODE, keySpec, parameterSpec);
 
             byte[] encrypted = cipher.doFinal(data.getBytes(StandardCharsets.UTF_8));
-            return Base64.getEncoder().encodeToString(encrypted);
+
+            byte[] ivAndCiphertext = new byte[GCM_IV_LENGTH + encrypted.length];
+            System.arraycopy(iv, 0, ivAndCiphertext, 0, GCM_IV_LENGTH);
+            System.arraycopy(encrypted, 0, ivAndCiphertext, GCM_IV_LENGTH, encrypted.length);
+
+            return Base64.getEncoder().encodeToString(ivAndCiphertext);
         } catch (Exception e) {
             logger.error("Encryption failed: {}", e.getMessage());
             throw new RuntimeException("Encryption failed", e);
@@ -100,22 +93,27 @@ public class CryptoUtil {
     /**
      * Decrypt data that was encrypted with {@link #encrypt(String)}.
      *
-     * ⚠️ VULNERABILITY: Same issues as encrypt() — DES/ECB with hardcoded key.
-     *
-     * @param encryptedData Base64-encoded ciphertext
+     * @param encryptedData Base64-encoded IV + ciphertext
      * @return decrypted plaintext string
      */
     public static String decrypt(String encryptedData) {
         try {
-            // ⚠️ VULNERABILITY: DES/ECB — weak cipher and mode
-            DESKeySpec keySpec = new DESKeySpec(ENCRYPTION_KEY.getBytes(StandardCharsets.UTF_8));
-            SecretKeyFactory keyFactory = SecretKeyFactory.getInstance("DES");
-            SecretKey secretKey = keyFactory.generateSecret(keySpec);
+            byte[] ivAndCiphertext = Base64.getDecoder().decode(encryptedData);
 
-            Cipher cipher = Cipher.getInstance("DES/ECB/PKCS5Padding");
-            cipher.init(Cipher.DECRYPT_MODE, secretKey);
+            byte[] iv = new byte[GCM_IV_LENGTH];
+            System.arraycopy(ivAndCiphertext, 0, iv, 0, GCM_IV_LENGTH);
 
-            byte[] decrypted = cipher.doFinal(Base64.getDecoder().decode(encryptedData));
+            byte[] ciphertext = new byte[ivAndCiphertext.length - GCM_IV_LENGTH];
+            System.arraycopy(ivAndCiphertext, GCM_IV_LENGTH, ciphertext, 0, ciphertext.length);
+
+            SecretKeySpec keySpec = new SecretKeySpec(
+                    ENCRYPTION_KEY.getBytes(StandardCharsets.UTF_8), "AES");
+            GCMParameterSpec parameterSpec = new GCMParameterSpec(GCM_TAG_LENGTH, iv);
+
+            Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+            cipher.init(Cipher.DECRYPT_MODE, keySpec, parameterSpec);
+
+            byte[] decrypted = cipher.doFinal(ciphertext);
             return new String(decrypted, StandardCharsets.UTF_8);
         } catch (Exception e) {
             logger.error("Decryption failed: {}", e.getMessage());
