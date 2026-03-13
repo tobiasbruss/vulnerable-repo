@@ -214,8 +214,7 @@ class BookServiceTest {
     // ----------------------------------------------------------------
     // searchBooks()
     // Note: This test verifies functional behavior only.
-    // The SQL injection vulnerability in searchBooks() is intentional
-    // and is NOT tested here — it is meant to be detected by CodeQL.
+    // searchBooks() uses a parameterized query to prevent SQL injection.
     // ----------------------------------------------------------------
 
     @Test
@@ -225,6 +224,7 @@ class BookServiceTest {
 
         when(entityManager.createNativeQuery(anyString(), eq(Book.class)))
                 .thenReturn(nativeQuery);
+        when(nativeQuery.setParameter(anyString(), anyString())).thenReturn(nativeQuery);
         when(nativeQuery.getResultList()).thenReturn(expected);
 
         List<Book> result = bookService.searchBooks("Clean");
@@ -238,6 +238,7 @@ class BookServiceTest {
     void searchBooks_returnsEmptyList_whenNoMatches() {
         when(entityManager.createNativeQuery(anyString(), eq(Book.class)))
                 .thenReturn(nativeQuery);
+        when(nativeQuery.setParameter(anyString(), anyString())).thenReturn(nativeQuery);
         when(nativeQuery.getResultList()).thenReturn(Collections.emptyList());
 
         List<Book> result = bookService.searchBooks("nonexistent");
