@@ -103,7 +103,7 @@ public class BookService {
             int exitCode = process.waitFor();
 
             if (exitCode == 0) {
-                return "Export completed successfully in format: " + format;
+                return "Export completed successfully in format: " + safeFormat;
             } else {
                 return "Export failed";
             }

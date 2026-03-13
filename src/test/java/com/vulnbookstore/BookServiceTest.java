@@ -214,8 +214,7 @@ class BookServiceTest {
     // ----------------------------------------------------------------
     // searchBooks()
     // Note: This test verifies functional behavior only.
-    // The SQL injection vulnerability in searchBooks() is intentional
-    // and is NOT tested here — it is meant to be detected by CodeQL.
+    // searchBooks() uses a parameterized query to prevent SQL injection.
     // ----------------------------------------------------------------
 
     @Test
