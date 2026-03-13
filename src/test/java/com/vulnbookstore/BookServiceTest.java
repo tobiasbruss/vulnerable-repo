@@ -4,7 +4,7 @@ import com.vulnbookstore.model.Book;
 import com.vulnbookstore.repository.BookRepository;
 import com.vulnbookstore.service.BookService;
 import jakarta.persistence.EntityManager;
-import jakarta.persistence.Query;
+import jakarta.persistence.TypedQuery;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -43,7 +43,7 @@ class BookServiceTest {
     private EntityManager entityManager;
 
     @Mock
-    private Query nativeQuery;
+    private TypedQuery<Book> typedQuery;
 
     @InjectMocks
     private BookService bookService;
@@ -223,9 +223,11 @@ class BookServiceTest {
     void searchBooks_returnsMatchingBooks() {
         List<Book> expected = List.of(sampleBook1);
 
-        when(entityManager.createNativeQuery(anyString(), eq(Book.class)))
-                .thenReturn(nativeQuery);
-        when(nativeQuery.getResultList()).thenReturn(expected);
+        when(entityManager.createQuery(anyString(), eq(Book.class)))
+                .thenReturn(typedQuery);
+        when(typedQuery.setParameter(anyString(), anyString()))
+                .thenReturn(typedQuery);
+        when(typedQuery.getResultList()).thenReturn(expected);
 
         List<Book> result = bookService.searchBooks("Clean");
 
@@ -236,9 +238,11 @@ class BookServiceTest {
     @Test
     @DisplayName("searchBooks() returns empty list when no matches found")
     void searchBooks_returnsEmptyList_whenNoMatches() {
-        when(entityManager.createNativeQuery(anyString(), eq(Book.class)))
-                .thenReturn(nativeQuery);
-        when(nativeQuery.getResultList()).thenReturn(Collections.emptyList());
+        when(entityManager.createQuery(anyString(), eq(Book.class)))
+                .thenReturn(typedQuery);
+        when(typedQuery.setParameter(anyString(), anyString()))
+                .thenReturn(typedQuery);
+        when(typedQuery.getResultList()).thenReturn(Collections.emptyList());
 
         List<Book> result = bookService.searchBooks("nonexistent");
 
