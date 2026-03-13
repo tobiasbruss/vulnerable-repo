@@ -106,16 +106,20 @@ public class BookService {
      * TODO: validate format against an allowlist before use
      */
     public String exportBookData(String format) {
-        // Validate format against an allowlist to prevent command injection
-        if (!format.equals("csv") && !format.equals("json") && !format.equals("xml")) {
-            return "Export error: unsupported format";
+        // Map user input to a hardcoded literal to prevent taint from flowing into exec()
+        final String safeFormat;
+        switch (format) {
+            case "csv":  safeFormat = "csv";  break;
+            case "json": safeFormat = "json"; break;
+            case "xml":  safeFormat = "xml";  break;
+            default: return "Export error: unsupported format";
         }
         try {
-            logger.info("Running export with format: {}", format);
+            logger.info("Running export with format: {}", safeFormat);
 
-            // Pass format as a separate argument to avoid shell command injection
+            // safeFormat is a hardcoded literal, not user-controlled — no command injection risk
             Process process = Runtime.getRuntime().exec(
-                    new String[]{"/opt/bookstore/scripts/export.sh", format});
+                    new String[]{"/opt/bookstore/scripts/export.sh", safeFormat});
             int exitCode = process.waitFor();
 
             if (exitCode == 0) {
