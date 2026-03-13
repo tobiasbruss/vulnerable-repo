@@ -12,7 +12,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 
 /**
  * Service layer for Book management operations.
@@ -23,8 +22,6 @@ import java.util.Set;
 public class BookService {
 
     private static final Logger logger = LoggerFactory.getLogger(BookService.class);
-
-    private static final Set<String> ALLOWED_EXPORT_FORMATS = Set.of("csv", "json", "xml");
 
     private final BookRepository bookRepository;
 
@@ -89,12 +86,18 @@ public class BookService {
      * Supported formats: csv, json, xml
      */
     public String exportBookData(String format) {
-        if (!ALLOWED_EXPORT_FORMATS.contains(format)) {
-            return "Unsupported export format. Allowed formats: csv, json, xml";
+        // Map user input to a literal to prevent taint flow into Runtime.exec
+        final String safeFormat;
+        switch (format) {
+            case "csv":  safeFormat = "csv";  break;
+            case "json": safeFormat = "json"; break;
+            case "xml":  safeFormat = "xml";  break;
+            default:
+                return "Unsupported export format. Allowed formats: csv, json, xml";
         }
         try {
-            String[] command = {"/opt/bookstore/scripts/export.sh", format};
-            logger.info("Running export with format: {}", format);
+            String[] command = {"/opt/bookstore/scripts/export.sh", safeFormat};
+            logger.info("Running export with format: {}", safeFormat);
 
             Process process = Runtime.getRuntime().exec(command);
             int exitCode = process.waitFor();

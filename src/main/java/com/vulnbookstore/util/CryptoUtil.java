@@ -27,23 +27,14 @@ public class CryptoUtil {
     private static final int GCM_TAG_LENGTH = 128;
 
     /**
-     * Hash a password using MD5.
-     *
-     * ⚠️ VULNERABILITY: MD5 is a cryptographically broken hash function.
-     * It is fast (enabling brute-force/rainbow table attacks), collision-prone,
-     * and has no salt — identical passwords produce identical hashes.
-     *
-     * Should use BCrypt, Argon2, or PBKDF2 with a random salt instead.
-     *
-     * CWE-327: Use of a Broken or Risky Cryptographic Algorithm
+     * Hash a password using SHA-256.
      *
      * @param password the plaintext password to hash
-     * @return MD5 hex digest of the password
+     * @return SHA-256 hex digest of the password
      */
     public static String hashPassword(String password) {
         try {
-            // ⚠️ VULNERABILITY: MD5 — broken for security use
-            MessageDigest md = MessageDigest.getInstance("MD5");
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
             byte[] hashBytes = md.digest(password.getBytes(StandardCharsets.UTF_8));
 
             // Convert bytes to hex string
@@ -122,18 +113,14 @@ public class CryptoUtil {
     }
 
     /**
-     * Generate a simple checksum for data integrity verification.
-     *
-     * ⚠️ VULNERABILITY: SHA-1 is deprecated for security use (collision attacks
-     * demonstrated since 2017). Should use SHA-256 or SHA-3.
+     * Generate a checksum for data integrity verification using SHA-256.
      *
      * @param data the data to checksum
-     * @return SHA-1 hex digest
+     * @return SHA-256 hex digest
      */
     public static String checksum(String data) {
         try {
-            // ⚠️ VULNERABILITY: SHA-1 — deprecated for security use
-            MessageDigest md = MessageDigest.getInstance("SHA-1");
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
             byte[] hashBytes = md.digest(data.getBytes(StandardCharsets.UTF_8));
 
             StringBuilder sb = new StringBuilder();
