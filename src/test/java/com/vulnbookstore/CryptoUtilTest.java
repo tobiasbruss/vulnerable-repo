@@ -109,16 +109,14 @@ class CryptoUtilTest {
     }
 
     @Test
-    @DisplayName("encrypt() is deterministic — same input produces same ciphertext (ECB mode)")
-    void encrypt_isDeterministic_dueToEcbMode() {
-        // ⚠️ This test DEMONSTRATES the ECB mode vulnerability:
-        // identical plaintexts always produce identical ciphertexts,
-        // leaking information about data patterns.
+    @DisplayName("encrypt() produces different ciphertext each invocation due to random IV (AES/GCM)")
+    void encrypt_producesDifferentCiphertextEachInvocation() {
+        // AES/GCM uses a random IV per encryption, so identical plaintexts
+        // produce different ciphertexts — this is the secure behaviour.
         String encrypted1 = CryptoUtil.encrypt("same data");
         String encrypted2 = CryptoUtil.encrypt("same data");
 
-        // In ECB mode, this will always be equal — a security weakness
-        assertEquals(encrypted1, encrypted2);
+        assertNotEquals(encrypted1, encrypted2);
     }
 
     @Test
