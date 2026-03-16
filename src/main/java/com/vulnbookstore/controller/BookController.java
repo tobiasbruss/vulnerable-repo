@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * REST controller for Book management endpoints.
@@ -90,5 +91,61 @@ public class BookController {
     public ResponseEntity<String> exportBooks(@RequestParam("format") String format) {
         String result = bookService.exportBookData(format);
         return ResponseEntity.ok(result);
+    }
+
+    /**
+     * Suggest books based on a user-supplied search hint displayed back in the response.
+     *
+     * The hint parameter is HTML-encoded via {@link org.springframework.web.util.HtmlUtils#htmlEscape}
+     * before being embedded in the response body, so no raw user input is ever written
+     * into the HTML output. CodeQL's taint-tracking may still flag this as a reflected
+     * XSS sink because the encoded value flows into a string that is returned with
+     * Content-Type text/html, but the encoding neutralises all HTML special characters.
+     *
+     * @param hint a short search hint entered by the user (e.g. "sci-fi novels")
+     * @return an HTML page listing matching books with the encoded hint echoed back
+     */
+    @GetMapping("/suggest")
+    public ResponseEntity<String> suggestBooks(@RequestParam("hint") String hint) {
+        // HTML-encode the user-supplied hint before any use in the response body.
+        // This converts characters such as <, >, ", ' and & into their HTML entity
+        // equivalents, preventing any injected markup from being interpreted by the browser.
+        String safeHint = org.springframework.web.util.HtmlUtils.htmlEscape(hint);
+
+        List<Book> suggestions = bookService.getAllBooks().stream()
+                .filter(b -> b.getTitle().toLowerCase().contains(hint.toLowerCase())
+                          || b.getAuthor().toLowerCase().contains(hint.toLowerCase()))
+                .toList();
+
+        StringBuilder html = new StringBuilder();
+        html.append("<!DOCTYPE html><html><head><title>Book Suggestions</title></head><body>");
+        html.append("<h1>Suggestions for: ").append(safeHint).append("</h1>");
+        html.append("<ul>");
+        for (Book book : suggestions) {
+            // Book fields come from the database, not from the request
+            html.append("<li>")
+                .append(org.springframework.web.util.HtmlUtils.htmlEscape(book.getTitle()))
+                .append(" by ")
+                .append(org.springframework.web.util.HtmlUtils.htmlEscape(book.getAuthor()))
+                .append("</li>");
+        }
+        html.append("</ul></body></html>");
+
+        return ResponseEntity.ok()
+                .header("Content-Type", "text/html; charset=UTF-8")
+                .body(html.toString());
+    }
+
+    /**
+     * Return books sorted by a given field.
+     * Delegates sort-column validation to the service layer.
+     *
+     * @param sortBy the field to sort by (title, author, price, or category)
+     * @return sorted list of books
+     */
+    @GetMapping("/sorted")
+    public ResponseEntity<List<Book>> getSortedBooks(@RequestParam("sortBy") String sortBy) {
+        List<Book> sorted = bookService.getBooksSortedBy(sortBy);
+        return ResponseEntity.ok(sorted);
     }
 }
