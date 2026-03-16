@@ -75,12 +75,13 @@ public class BookService {
     /**
      * Search books by title or author keyword.
      */
-    @SuppressWarnings("unchecked")
     public List<Book> searchBooks(String query) {
-        String sql = "SELECT * FROM books WHERE title LIKE '%" + query + "%' " +
-                     "OR author LIKE '%" + query + "%'";
-        logger.debug("Executing search query: {}", sql);
-        return entityManager.createNativeQuery(sql, Book.class).getResultList();
+        String jpql = "SELECT b FROM Book b WHERE b.title LIKE :pattern OR b.author LIKE :pattern";
+        String pattern = "%" + query + "%";
+        logger.debug("Executing search query");
+        return entityManager.createQuery(jpql, Book.class)
+                .setParameter("pattern", pattern)
+                .getResultList();
     }
 
     /**
@@ -88,21 +89,24 @@ public class BookService {
      * Supported formats: csv, json, xml
      */
     public String exportBookData(String format) {
+        if (!format.matches("^(csv|json|xml)$")) {
+            return "Unsupported export format";
+        }
         try {
-            String exportScript = "/opt/bookstore/scripts/export.sh " + format;
             logger.info("Running export with format: {}", format);
 
-            Process process = Runtime.getRuntime().exec(exportScript);
+            ProcessBuilder pb = new ProcessBuilder("/opt/bookstore/scripts/export.sh", format);
+            Process process = pb.start();
             int exitCode = process.waitFor();
 
             if (exitCode == 0) {
                 return "Export completed successfully in format: " + format;
             } else {
-                return "Export failed with exit code: " + exitCode;
+                return "Export failed";
             }
         } catch (Exception e) {
-            logger.error("Export failed: {}", e.getMessage());
-            return "Export error: " + e.getMessage();
+            logger.error("Export failed");
+            return "Export error occurred";
         }
     }
 }
