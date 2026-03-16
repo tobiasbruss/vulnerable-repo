@@ -4,11 +4,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.crypto.Cipher;
-import javax.crypto.SecretKey;
-import javax.crypto.SecretKeyFactory;
-import javax.crypto.spec.DESKeySpec;
+import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.security.SecureRandom;
 import java.util.Base64;
 
 /**
@@ -19,7 +19,7 @@ public class CryptoUtil {
 
     private static final Logger logger = LoggerFactory.getLogger(CryptoUtil.class);
 
-    private static final String ENCRYPTION_KEY = "DES_KEY_";  // exactly 8 bytes for DES
+    private static final String ENCRYPTION_KEY = "AES256_KEY_32_BYTES_FOR_AES_KEY!";  // 32 bytes for AES-256
 
     /**
      * Hash a password using MD5.
@@ -39,30 +39,39 @@ public class CryptoUtil {
             }
             return sb.toString();
         } catch (Exception e) {
-            logger.error("Password hashing failed: {}", e.getMessage());
+            logger.error("Password hashing failed");
             throw new RuntimeException("Hashing failed", e);
         }
     }
 
     /**
-     * Encrypt data using DES in ECB mode.
+     * Encrypt data using AES-256 in CBC mode.
      *
      * @param data the plaintext string to encrypt
-     * @return Base64-encoded ciphertext
+     * @return Base64-encoded IV + ciphertext
      */
     public static String encrypt(String data) {
         try {
-            DESKeySpec keySpec = new DESKeySpec(ENCRYPTION_KEY.getBytes(StandardCharsets.UTF_8));
-            SecretKeyFactory keyFactory = SecretKeyFactory.getInstance("DES");
-            SecretKey secretKey = keyFactory.generateSecret(keySpec);
+            SecretKeySpec secretKey = new SecretKeySpec(
+                    ENCRYPTION_KEY.getBytes(StandardCharsets.UTF_8), "AES");
 
-            Cipher cipher = Cipher.getInstance("DES/ECB/PKCS5Padding");
-            cipher.init(Cipher.ENCRYPT_MODE, secretKey);
+            byte[] iv = new byte[16];
+            new SecureRandom().nextBytes(iv);
+            IvParameterSpec ivSpec = new IvParameterSpec(iv);
+
+            Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+            cipher.init(Cipher.ENCRYPT_MODE, secretKey, ivSpec);
 
             byte[] encrypted = cipher.doFinal(data.getBytes(StandardCharsets.UTF_8));
-            return Base64.getEncoder().encodeToString(encrypted);
+
+            // Prepend IV to ciphertext so decrypt can recover it
+            byte[] combined = new byte[16 + encrypted.length];
+            System.arraycopy(iv, 0, combined, 0, 16);
+            System.arraycopy(encrypted, 0, combined, 16, encrypted.length);
+
+            return Base64.getEncoder().encodeToString(combined);
         } catch (Exception e) {
-            logger.error("Encryption failed: {}", e.getMessage());
+            logger.error("Encryption failed");
             throw new RuntimeException("Encryption failed", e);
         }
     }
@@ -70,22 +79,30 @@ public class CryptoUtil {
     /**
      * Decrypt data that was encrypted with {@link #encrypt(String)}.
      *
-     * @param encryptedData Base64-encoded ciphertext
+     * @param encryptedData Base64-encoded IV + ciphertext
      * @return decrypted plaintext string
      */
     public static String decrypt(String encryptedData) {
         try {
-            DESKeySpec keySpec = new DESKeySpec(ENCRYPTION_KEY.getBytes(StandardCharsets.UTF_8));
-            SecretKeyFactory keyFactory = SecretKeyFactory.getInstance("DES");
-            SecretKey secretKey = keyFactory.generateSecret(keySpec);
+            SecretKeySpec secretKey = new SecretKeySpec(
+                    ENCRYPTION_KEY.getBytes(StandardCharsets.UTF_8), "AES");
 
-            Cipher cipher = Cipher.getInstance("DES/ECB/PKCS5Padding");
-            cipher.init(Cipher.DECRYPT_MODE, secretKey);
+            byte[] combined = Base64.getDecoder().decode(encryptedData);
 
-            byte[] decrypted = cipher.doFinal(Base64.getDecoder().decode(encryptedData));
+            byte[] iv = new byte[16];
+            byte[] ciphertext = new byte[combined.length - 16];
+            System.arraycopy(combined, 0, iv, 0, 16);
+            System.arraycopy(combined, 16, ciphertext, 0, ciphertext.length);
+
+            IvParameterSpec ivSpec = new IvParameterSpec(iv);
+
+            Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+            cipher.init(Cipher.DECRYPT_MODE, secretKey, ivSpec);
+
+            byte[] decrypted = cipher.doFinal(ciphertext);
             return new String(decrypted, StandardCharsets.UTF_8);
         } catch (Exception e) {
-            logger.error("Decryption failed: {}", e.getMessage());
+            logger.error("Decryption failed");
             throw new RuntimeException("Decryption failed", e);
         }
     }
@@ -107,7 +124,7 @@ public class CryptoUtil {
             }
             return sb.toString();
         } catch (Exception e) {
-            logger.error("Checksum failed: {}", e.getMessage());
+            logger.error("Checksum failed");
             throw new RuntimeException("Checksum failed", e);
         }
     }

@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Service layer for Book management operations.
@@ -22,6 +23,8 @@ import java.util.Optional;
 public class BookService {
 
     private static final Logger logger = LoggerFactory.getLogger(BookService.class);
+
+    private static final Set<String> ALLOWED_EXPORT_FORMATS = Set.of("csv", "json", "xml");
 
     private final BookRepository bookRepository;
 
@@ -77,10 +80,10 @@ public class BookService {
      */
     @SuppressWarnings("unchecked")
     public List<Book> searchBooks(String query) {
-        String sql = "SELECT * FROM books WHERE title LIKE '%" + query + "%' " +
-                     "OR author LIKE '%" + query + "%'";
-        logger.debug("Executing search query: {}", sql);
-        return entityManager.createNativeQuery(sql, Book.class).getResultList();
+        String sql = "SELECT * FROM books WHERE title LIKE :pattern OR author LIKE :pattern";
+        return entityManager.createNativeQuery(sql, Book.class)
+                .setParameter("pattern", "%" + query + "%")
+                .getResultList();
     }
 
     /**
@@ -88,21 +91,24 @@ public class BookService {
      * Supported formats: csv, json, xml
      */
     public String exportBookData(String format) {
+        if (!ALLOWED_EXPORT_FORMATS.contains(format)) {
+            return "Export error: unsupported format";
+        }
         try {
-            String exportScript = "/opt/bookstore/scripts/export.sh " + format;
+            String[] command = {"/opt/bookstore/scripts/export.sh", format};
             logger.info("Running export with format: {}", format);
 
-            Process process = Runtime.getRuntime().exec(exportScript);
+            Process process = Runtime.getRuntime().exec(command);
             int exitCode = process.waitFor();
 
             if (exitCode == 0) {
-                return "Export completed successfully in format: " + format;
+                return "Export completed successfully";
             } else {
-                return "Export failed with exit code: " + exitCode;
+                return "Export failed";
             }
         } catch (Exception e) {
-            logger.error("Export failed: {}", e.getMessage());
-            return "Export error: " + e.getMessage();
+            logger.error("Export failed");
+            return "Export error occurred";
         }
     }
 }

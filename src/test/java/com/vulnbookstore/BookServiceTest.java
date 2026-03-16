@@ -220,6 +220,7 @@ class BookServiceTest {
 
         when(entityManager.createNativeQuery(anyString(), eq(Book.class)))
                 .thenReturn(nativeQuery);
+        when(nativeQuery.setParameter(anyString(), any())).thenReturn(nativeQuery);
         when(nativeQuery.getResultList()).thenReturn(expected);
 
         List<Book> result = bookService.searchBooks("Clean");
@@ -233,6 +234,7 @@ class BookServiceTest {
     void searchBooks_returnsEmptyList_whenNoMatches() {
         when(entityManager.createNativeQuery(anyString(), eq(Book.class)))
                 .thenReturn(nativeQuery);
+        when(nativeQuery.setParameter(anyString(), any())).thenReturn(nativeQuery);
         when(nativeQuery.getResultList()).thenReturn(Collections.emptyList());
 
         List<Book> result = bookService.searchBooks("nonexistent");
