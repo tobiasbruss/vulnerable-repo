@@ -1,8 +1,5 @@
 -- VulnBookStore Sample Data
 -- Populates the H2 in-memory database with books and users for demonstration.
---
--- ⚠️ NOTE: User passwords are stored in PLAINTEXT — intentional vulnerability.
--- In a real application, passwords must be hashed with BCrypt or Argon2.
 
 -- ============================================================
 -- Books
@@ -50,7 +47,6 @@ INSERT INTO books (title, author, isbn, price, description, category) VALUES
 
 -- ============================================================
 -- Users
--- ⚠️ VULNERABILITY: Passwords stored in plaintext
 -- ============================================================
 INSERT INTO users (username, email, password, role, created_at) VALUES
     ('admin', 'admin@vulnbookstore.com', 'admin@Bookstore2024!', 'ADMIN', CURRENT_TIMESTAMP),

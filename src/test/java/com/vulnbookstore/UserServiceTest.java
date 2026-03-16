@@ -24,8 +24,6 @@ import static org.mockito.Mockito.*;
  * Tests cover user creation, authentication, and password reset token generation.
  *
  * Note: These tests verify functional correctness only.
- * Security vulnerabilities (plaintext passwords, weak random) are intentional
- * and are meant to be detected by GHAS CodeQL scanning.
  */
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
@@ -60,7 +58,6 @@ class UserServiceTest {
         assertNotNull(result);
         assertEquals("alice", result.getUsername());
         assertEquals("alice@example.com", result.getEmail());
-        // Note: password is stored as-is (plaintext) — intentional vulnerability
         assertEquals("password123", result.getPassword());
         verify(userRepository).save(any(User.class));
     }
@@ -152,9 +149,6 @@ class UserServiceTest {
 
     // ----------------------------------------------------------------
     // generatePasswordResetToken()
-    // Note: Tests verify that a token is generated and stored.
-    // The weak randomness vulnerability (java.util.Random) is intentional
-    // and is meant to be detected by CodeQL — not tested here.
     // ----------------------------------------------------------------
 
     @Test
@@ -198,8 +192,6 @@ class UserServiceTest {
 
         assertTrue(token1.isPresent());
         assertTrue(token2.isPresent());
-        // Tokens should generally differ (though with weak Random they could theoretically collide)
-        // This test documents the expected behavior, not the security property
         assertThat(token1.get()).isNotBlank();
         assertThat(token2.get()).isNotBlank();
     }

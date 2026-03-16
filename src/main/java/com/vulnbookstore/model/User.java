@@ -9,8 +9,6 @@ import java.time.LocalDateTime;
 
 /**
  * User entity representing a registered user of the bookstore.
- *
- * TODO: Consider encrypting sensitive fields before storing
  */
 @Entity
 @Table(name = "users")
@@ -29,8 +27,6 @@ public class User {
     @Column(nullable = false, unique = true)
     private String email;
 
-    // ⚠️ VULNERABILITY: Password stored as plaintext — should use BCrypt or similar
-    // TODO: add password hashing later
     @Column(nullable = false)
     private String password;
 

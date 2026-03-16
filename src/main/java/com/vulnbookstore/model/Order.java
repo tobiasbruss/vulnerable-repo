@@ -31,8 +31,6 @@ public class Order {
     @Column(nullable = false)
     private Integer quantity;
 
-    // ⚠️ VULNERABILITY: totalPrice is calculated using int arithmetic before being
-    // assigned to BigDecimal — potential integer overflow for large quantities/prices
     @Column(name = "total_price", nullable = false)
     private BigDecimal totalPrice;
 

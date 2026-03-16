@@ -46,20 +46,6 @@ public class OrderService {
 
     /**
      * Create a new order for a given book and quantity.
-     *
-     * ⚠️ VULNERABILITY: Integer overflow in price calculation.
-     * The price (BigDecimal) is converted to int cents via intValue(), then
-     * multiplied by quantity (also int). For large prices or quantities, this
-     * multiplication can silently overflow, producing a negative or incorrect
-     * total price that is then wrapped back into a BigDecimal.
-     *
-     * Example: price = $21474836.48, quantity = 100
-     *   priceCents = 2147483648 → intValue() overflows to -2147483648
-     *   totalCents = -2147483648 * 100 → further overflow
-     *
-     * This is a subtle vulnerability — the code looks like a reasonable
-     * fixed-point arithmetic approach.
-     * TODO: use BigDecimal.multiply() directly
      */
     @Transactional
     public Order createOrder(Long userId, Long bookId, int quantity) {
@@ -70,9 +56,8 @@ public class OrderService {
             throw new IllegalArgumentException("Quantity must be positive");
         }
 
-        // ⚠️ VULNERABILITY: integer overflow — should use BigDecimal.multiply()
         int priceCents = book.getPrice().multiply(BigDecimal.valueOf(100)).intValue();
-        int totalCents = priceCents * quantity; // potential overflow here
+        int totalCents = priceCents * quantity;
         BigDecimal totalPrice = BigDecimal.valueOf(totalCents).divide(BigDecimal.valueOf(100));
 
         Order order = new Order();

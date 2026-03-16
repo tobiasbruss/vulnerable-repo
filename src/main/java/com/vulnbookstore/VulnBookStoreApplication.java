@@ -5,10 +5,6 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 /**
  * VulnBookStore - A BookStore REST API
- *
- * ⚠️ WARNING: This application is INTENTIONALLY VULNERABLE.
- * It is designed for educational purposes to demonstrate GitHub Advanced Security (GHAS).
- * DO NOT USE IN PRODUCTION.
  */
 @SpringBootApplication
 public class VulnBookStoreApplication {

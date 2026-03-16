@@ -40,9 +40,6 @@ public class UserController {
 
             User user = userService.createUser(username, email, password, role);
 
-            // ⚠️ VULNERABILITY: Sensitive data exposure — the full User object is
-            // returned in the response, including the plaintext password field.
-            // Should return a DTO that excludes the password.
             return ResponseEntity.status(HttpStatus.CREATED).body(user);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -51,9 +48,6 @@ public class UserController {
 
     /**
      * Authenticate a user and return their profile.
-     *
-     * ⚠️ VULNERABILITY: Sensitive data exposure — returns the full User object
-     * including the plaintext password on successful login.
      */
     @PostMapping("/users/login")
     public ResponseEntity<?> login(@RequestBody Map<String, String> request) {
@@ -63,10 +57,9 @@ public class UserController {
         Optional<User> userOpt = userService.authenticateUser(username, password);
 
         if (userOpt.isPresent()) {
-            // ⚠️ VULNERABILITY: returns full user object including password
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Login successful");
-            response.put("user", userOpt.get()); // exposes password field
+            response.put("user", userOpt.get());
             return ResponseEntity.ok(response);
         } else {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
@@ -76,16 +69,11 @@ public class UserController {
 
     /**
      * Get a user by ID.
-     *
-     * ⚠️ VULNERABILITY: Sensitive data exposure — returns the full User object
-     * including the plaintext password. No authorization check — any caller
-     * can retrieve any user's details including their password.
      */
     @GetMapping("/users/{id}")
     public ResponseEntity<?> getUserById(@PathVariable Long id) {
-        // TODO: add authorization check — users should only see their own profile
         return userService.getUserById(id)
-                .map(user -> ResponseEntity.ok((Object) user)) // exposes password
+                .map(user -> ResponseEntity.ok((Object) user))
                 .orElse(ResponseEntity.notFound().build());
     }
 
@@ -118,25 +106,16 @@ public class UserController {
 
     /**
      * Admin endpoint: list all users.
-     *
-     * ⚠️ VULNERABILITY: Broken Access Control — authorization is based solely on
-     * a custom HTTP header value ("X-Admin-Token: admin-secret"). This is trivially
-     * bypassable — any client that knows (or guesses) the header value gets full
-     * admin access, regardless of their actual identity or role.
-     *
-     * Should use Spring Security's @PreAuthorize("hasRole('ADMIN')") or similar.
      */
     @GetMapping("/admin/users")
     public ResponseEntity<?> getAllUsers(
             @RequestHeader(value = "X-Admin-Token", required = false) String adminToken) {
 
-        // ⚠️ VULNERABILITY: header-based "authentication" — easily bypassed
         if (!"admin-secret".equals(adminToken)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Map.of("error", "Access denied"));
         }
 
-        // ⚠️ VULNERABILITY: returns all users including their plaintext passwords
         List<User> users = userService.getAllUsers();
         return ResponseEntity.ok(users);
     }
