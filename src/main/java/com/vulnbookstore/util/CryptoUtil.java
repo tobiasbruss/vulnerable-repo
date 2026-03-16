@@ -4,7 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.crypto.Cipher;
-import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -55,19 +55,19 @@ public class CryptoUtil {
             SecretKeySpec secretKey = new SecretKeySpec(
                     ENCRYPTION_KEY.getBytes(StandardCharsets.UTF_8), "AES");
 
-            byte[] iv = new byte[16];
+            byte[] iv = new byte[12];
             new SecureRandom().nextBytes(iv);
-            IvParameterSpec ivSpec = new IvParameterSpec(iv);
+            GCMParameterSpec gcmSpec = new GCMParameterSpec(128, iv);
 
-            Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
-            cipher.init(Cipher.ENCRYPT_MODE, secretKey, ivSpec);
+            Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+            cipher.init(Cipher.ENCRYPT_MODE, secretKey, gcmSpec);
 
             byte[] encrypted = cipher.doFinal(data.getBytes(StandardCharsets.UTF_8));
 
             // Prepend IV to ciphertext so decrypt can recover it
-            byte[] combined = new byte[16 + encrypted.length];
-            System.arraycopy(iv, 0, combined, 0, 16);
-            System.arraycopy(encrypted, 0, combined, 16, encrypted.length);
+            byte[] combined = new byte[12 + encrypted.length];
+            System.arraycopy(iv, 0, combined, 0, 12);
+            System.arraycopy(encrypted, 0, combined, 12, encrypted.length);
 
             return Base64.getEncoder().encodeToString(combined);
         } catch (Exception e) {
@@ -89,15 +89,15 @@ public class CryptoUtil {
 
             byte[] combined = Base64.getDecoder().decode(encryptedData);
 
-            byte[] iv = new byte[16];
-            byte[] ciphertext = new byte[combined.length - 16];
-            System.arraycopy(combined, 0, iv, 0, 16);
-            System.arraycopy(combined, 16, ciphertext, 0, ciphertext.length);
+            byte[] iv = new byte[12];
+            byte[] ciphertext = new byte[combined.length - 12];
+            System.arraycopy(combined, 0, iv, 0, 12);
+            System.arraycopy(combined, 12, ciphertext, 0, ciphertext.length);
 
-            IvParameterSpec ivSpec = new IvParameterSpec(iv);
+            GCMParameterSpec gcmSpec = new GCMParameterSpec(128, iv);
 
-            Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
-            cipher.init(Cipher.DECRYPT_MODE, secretKey, ivSpec);
+            Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+            cipher.init(Cipher.DECRYPT_MODE, secretKey, gcmSpec);
 
             byte[] decrypted = cipher.doFinal(ciphertext);
             return new String(decrypted, StandardCharsets.UTF_8);
