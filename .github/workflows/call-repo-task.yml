@@ -1,0 +1,23 @@
+name: Call repo task
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'If true, run the dummy task (sleep + list files). If false, fetch GitHub Advanced Security findings.'
+        required: false
+        default: 'false'
+        type: string
+permissions:
+  contents: read
+  security-events: read
+jobs:
+  task:
+    uses: tobiasbruss/reusable-workflow-playground/.github/workflows/repo-task-core.yml@main
+    with:
+      dry_run: ${{ inputs.dry_run }}
+      runner: ubuntu-latest
+    secrets:
+      GHAS_TOKEN:       ${{ secrets.GHAS_TOKEN }}
+      EXTERNAL_API_KEY: ${{ secrets.EXTERNAL_API_KEY }}
+
+
