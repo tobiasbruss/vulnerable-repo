@@ -30,8 +30,6 @@ import static org.mockito.Mockito.*;
  * Tests cover standard CRUD operations and search functionality.
  *
  * Note: These tests verify functional correctness, not security properties.
- * Security vulnerabilities (SQL injection, command injection) are intentionally
- * present in the service but are not tested here.
  */
 @ExtendWith(MockitoExtension.class)
 class BookServiceTest {
@@ -213,9 +211,6 @@ class BookServiceTest {
 
     // ----------------------------------------------------------------
     // searchBooks()
-    // Note: This test verifies functional behavior only.
-    // The SQL injection vulnerability in searchBooks() is intentional
-    // and is NOT tested here — it is meant to be detected by CodeQL.
     // ----------------------------------------------------------------
 
     @Test

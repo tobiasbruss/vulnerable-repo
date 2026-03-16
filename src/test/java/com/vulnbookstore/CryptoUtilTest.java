@@ -10,10 +10,6 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Unit tests for CryptoUtil.
  * Tests verify functional correctness of hashing and encryption operations.
- *
- * Note: These tests verify that the methods work correctly, NOT that they
- * are secure. The use of MD5, DES/ECB, and SHA-1 are intentional vulnerabilities
- * meant to be detected by GHAS CodeQL (CWE-327: Use of Broken Cryptographic Algorithm).
  */
 class CryptoUtilTest {
 
@@ -81,8 +77,6 @@ class CryptoUtilTest {
     void hashPassword_producesKnownHashForAdmin() {
         String hash = CryptoUtil.hashPassword("admin");
 
-        // Known MD5 hash of "admin" — easily found in rainbow tables
-        // This demonstrates why MD5 is unsuitable for password storage
         assertThat(hash).isEqualTo("21232f297a57a5a743894a0e4a801fc3");
     }
 
@@ -111,13 +105,9 @@ class CryptoUtilTest {
     @Test
     @DisplayName("encrypt() is deterministic — same input produces same ciphertext (ECB mode)")
     void encrypt_isDeterministic_dueToEcbMode() {
-        // ⚠️ This test DEMONSTRATES the ECB mode vulnerability:
-        // identical plaintexts always produce identical ciphertexts,
-        // leaking information about data patterns.
         String encrypted1 = CryptoUtil.encrypt("same data");
         String encrypted2 = CryptoUtil.encrypt("same data");
 
-        // In ECB mode, this will always be equal — a security weakness
         assertEquals(encrypted1, encrypted2);
     }
 

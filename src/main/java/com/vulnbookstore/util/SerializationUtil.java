@@ -35,25 +35,11 @@ public class SerializationUtil {
     /**
      * Deserialize an object from a byte array (e.g., from cache or network).
      *
-     * ⚠️ VULNERABILITY: Insecure Deserialization — ObjectInputStream is used
-     * without any class filtering or allowlisting. An attacker who can control
-     * the input byte array can supply a malicious serialized payload (e.g., using
-     * gadget chains from commons-collections 3.2.1) to achieve Remote Code Execution.
-     *
-     * This is a subtle but critical vulnerability. The fix is to use a
-     * ValidatingObjectInputStream with an explicit class allowlist, or switch
-     * to a safer serialization format (JSON, Protobuf, etc.).
-     *
-     * CVE reference: CVE-2015-6420, CVE-2015-7501 (Apache Commons Collections)
-     *
-     * TODO: implement class filtering before deploying to production
-     *
      * @param data byte array to deserialize
      * @return deserialized object
      */
     public static Object deserialize(byte[] data) {
         try (ByteArrayInputStream bais = new ByteArrayInputStream(data);
-             // ⚠️ VULNERABILITY: raw ObjectInputStream — no class filtering
              ObjectInputStream ois = new ObjectInputStream(bais)) {
             return ois.readObject();
         } catch (IOException | ClassNotFoundException e) {

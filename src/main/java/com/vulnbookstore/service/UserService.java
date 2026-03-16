@@ -24,17 +24,10 @@ public class UserService {
 
     private final UserRepository userRepository;
 
-    // ⚠️ VULNERABILITY: java.util.Random is not cryptographically secure.
-    // Should use java.security.SecureRandom for security-sensitive operations.
-    // This is a subtle vulnerability — the code looks reasonable at first glance.
     private final Random random = new Random();
 
     /**
      * Register a new user.
-     *
-     * ⚠️ VULNERABILITY: Password is stored in plaintext.
-     * Should use BCryptPasswordEncoder or similar before persisting.
-     * TODO: add password hashing before storing
      */
     @Transactional
     public User createUser(String username, String email, String password, String role) {
@@ -48,7 +41,6 @@ public class UserService {
         User user = new User();
         user.setUsername(username);
         user.setEmail(email);
-        // ⚠️ VULNERABILITY: storing password as-is, no hashing
         user.setPassword(password);
         user.setRole(role != null ? role : "USER");
         user.setCreatedAt(LocalDateTime.now());
@@ -59,17 +51,12 @@ public class UserService {
 
     /**
      * Authenticate a user by username and password.
-     *
-     * ⚠️ VULNERABILITY: Direct string comparison of plaintext passwords.
-     * Even if hashing were added, this comparison should use a constant-time
-     * method to prevent timing attacks.
      */
     public Optional<User> authenticateUser(String username, String password) {
         Optional<User> userOpt = userRepository.findByUsername(username);
 
         if (userOpt.isPresent()) {
             User user = userOpt.get();
-            // ⚠️ VULNERABILITY: plaintext password comparison
             if (user.getPassword().equals(password)) {
                 logger.info("User authenticated successfully: {}", username);
                 return Optional.of(user);
@@ -85,13 +72,6 @@ public class UserService {
 
     /**
      * Generate a password reset token for the given email address.
-     *
-     * ⚠️ VULNERABILITY: Uses java.util.Random which is NOT cryptographically
-     * secure. The token can be predicted by an attacker who knows the seed.
-     * Should use SecureRandom.nextLong() or UUID.randomUUID() instead.
-     *
-     * This is a subtle vulnerability — the method looks correct but the
-     * randomness source is weak, making tokens predictable.
      */
     @Transactional
     public Optional<String> generatePasswordResetToken(String email) {
@@ -104,7 +84,6 @@ public class UserService {
 
         User user = userOpt.get();
 
-        // ⚠️ VULNERABILITY: Random (not SecureRandom) used for security token
         long tokenValue = random.nextLong();
         String token = Long.toHexString(Math.abs(tokenValue));
 
@@ -124,8 +103,6 @@ public class UserService {
 
     /**
      * Reset a user's password using a valid reset token.
-     *
-     * ⚠️ VULNERABILITY: New password stored in plaintext again.
      */
     @Transactional
     public boolean resetPassword(String token, String newPassword) {
@@ -136,7 +113,6 @@ public class UserService {
         }
 
         User user = userOpt.get();
-        // ⚠️ VULNERABILITY: plaintext password storage
         user.setPassword(newPassword);
         user.setResetToken(null);
         userRepository.save(user);
