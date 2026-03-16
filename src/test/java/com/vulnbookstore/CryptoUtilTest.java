@@ -103,12 +103,13 @@ class CryptoUtilTest {
     }
 
     @Test
-    @DisplayName("encrypt() is deterministic — same input produces same ciphertext (ECB mode)")
-    void encrypt_isDeterministic_dueToEcbMode() {
+    @DisplayName("encrypt() produces different ciphertext on successive calls (GCM uses random IV)")
+    void encrypt_isNonDeterministic_dueToRandomIv() {
         String encrypted1 = CryptoUtil.encrypt("same data");
         String encrypted2 = CryptoUtil.encrypt("same data");
 
-        assertEquals(encrypted1, encrypted2);
+        // AES/GCM uses a random IV per encryption, so ciphertext must differ
+        assertNotEquals(encrypted1, encrypted2);
     }
 
     @Test
