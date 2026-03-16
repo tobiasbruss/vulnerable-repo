@@ -14,7 +14,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class CryptoUtilTest {
 
     // ----------------------------------------------------------------
-    // hashPassword() — MD5
+    // hashPassword() — SHA-256
     // ----------------------------------------------------------------
 
     @Test
@@ -27,13 +27,13 @@ class CryptoUtilTest {
     }
 
     @Test
-    @DisplayName("hashPassword() returns a 32-character MD5 hex string")
-    void hashPassword_returns32CharHexString() {
+    @DisplayName("hashPassword() returns a 64-character SHA-256 hex string")
+    void hashPassword_returns64CharHexString() {
         String hash = CryptoUtil.hashPassword("password123");
 
-        // MD5 produces a 128-bit (16-byte) hash → 32 hex characters
-        assertThat(hash).hasSize(32);
-        assertThat(hash).matches("[0-9a-f]{32}");
+        // SHA-256 produces a 256-bit (32-byte) hash → 64 hex characters
+        assertThat(hash).hasSize(64);
+        assertThat(hash).matches("[0-9a-f]{64}");
     }
 
     @Test
@@ -68,20 +68,20 @@ class CryptoUtilTest {
     void hashPassword_handlesEmptyString() {
         String hash = CryptoUtil.hashPassword("");
 
-        // MD5 of empty string is well-known: d41d8cd98f00b204e9800998ecf8427e
-        assertThat(hash).isEqualTo("d41d8cd98f00b204e9800998ecf8427e");
+        // SHA-256 of empty string
+        assertThat(hash).isEqualTo("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
     }
 
     @Test
-    @DisplayName("hashPassword() produces known MD5 hash for 'admin'")
+    @DisplayName("hashPassword() produces known SHA-256 hash for 'admin'")
     void hashPassword_producesKnownHashForAdmin() {
         String hash = CryptoUtil.hashPassword("admin");
 
-        assertThat(hash).isEqualTo("21232f297a57a5a743894a0e4a801fc3");
+        assertThat(hash).isEqualTo("8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918");
     }
 
     // ----------------------------------------------------------------
-    // encrypt() and decrypt() — DES/ECB
+    // encrypt() and decrypt() — AES/GCM
     // ----------------------------------------------------------------
 
     @Test
@@ -103,12 +103,12 @@ class CryptoUtilTest {
     }
 
     @Test
-    @DisplayName("encrypt() is deterministic — same input produces same ciphertext (ECB mode)")
-    void encrypt_isDeterministic_dueToEcbMode() {
+    @DisplayName("encrypt() is non-deterministic — same input produces different ciphertext (AES/GCM with random IV)")
+    void encrypt_isNonDeterministic_dueToRandomIv() {
         String encrypted1 = CryptoUtil.encrypt("same data");
         String encrypted2 = CryptoUtil.encrypt("same data");
 
-        assertEquals(encrypted1, encrypted2);
+        assertNotEquals(encrypted1, encrypted2);
     }
 
     @Test
@@ -150,17 +150,17 @@ class CryptoUtilTest {
     }
 
     // ----------------------------------------------------------------
-    // checksum() — SHA-1
+    // checksum() — SHA-256
     // ----------------------------------------------------------------
 
     @Test
-    @DisplayName("checksum() returns a 40-character SHA-1 hex string")
-    void checksum_returns40CharHexString() {
+    @DisplayName("checksum() returns a 64-character SHA-256 hex string")
+    void checksum_returns64CharHexString() {
         String checksum = CryptoUtil.checksum("test data");
 
-        // SHA-1 produces a 160-bit (20-byte) hash → 40 hex characters
-        assertThat(checksum).hasSize(40);
-        assertThat(checksum).matches("[0-9a-f]{40}");
+        // SHA-256 produces a 256-bit (32-byte) hash → 64 hex characters
+        assertThat(checksum).hasSize(64);
+        assertThat(checksum).matches("[0-9a-f]{64}");
     }
 
     @Test

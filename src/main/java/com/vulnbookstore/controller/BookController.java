@@ -7,6 +7,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.web.util.HtmlUtils;
+
 import java.util.List;
 
 /**
@@ -73,9 +75,9 @@ public class BookController {
     public ResponseEntity<String> renderDescription(@PathVariable Long id) {
         return bookService.getBookById(id).map(book -> {
             String html = "<html><body>" +
-                          "<h1>" + book.getTitle() + "</h1>" +
-                          "<h2>by " + book.getAuthor() + "</h2>" +
-                          "<div class=\"description\">" + book.getDescription() + "</div>" +
+                          "<h1>" + HtmlUtils.htmlEscape(book.getTitle()) + "</h1>" +
+                          "<h2>by " + HtmlUtils.htmlEscape(book.getAuthor()) + "</h2>" +
+                          "<div class=\"description\">" + HtmlUtils.htmlEscape(book.getDescription()) + "</div>" +
                           "</body></html>";
             return ResponseEntity.ok()
                     .header("Content-Type", "text/html")

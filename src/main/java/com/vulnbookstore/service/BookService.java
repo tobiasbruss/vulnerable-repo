@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Service layer for Book management operations.
@@ -77,32 +78,37 @@ public class BookService {
      */
     @SuppressWarnings("unchecked")
     public List<Book> searchBooks(String query) {
-        String sql = "SELECT * FROM books WHERE title LIKE '%" + query + "%' " +
-                     "OR author LIKE '%" + query + "%'";
-        logger.debug("Executing search query: {}", sql);
-        return entityManager.createNativeQuery(sql, Book.class).getResultList();
+        String sql = "SELECT * FROM books WHERE title LIKE :pattern OR author LIKE :pattern";
+        String pattern = "%" + query + "%";
+        return entityManager.createNativeQuery(sql, Book.class)
+                .setParameter("pattern", pattern)
+                .getResultList();
     }
+
+    private static final Set<String> ALLOWED_EXPORT_FORMATS = Set.of("csv", "json", "xml");
 
     /**
      * Export book data in the specified format.
      * Supported formats: csv, json, xml
      */
     public String exportBookData(String format) {
+        if (!ALLOWED_EXPORT_FORMATS.contains(format)) {
+            return "Invalid export format. Allowed formats: csv, json, xml";
+        }
         try {
-            String exportScript = "/opt/bookstore/scripts/export.sh " + format;
             logger.info("Running export with format: {}", format);
-
-            Process process = Runtime.getRuntime().exec(exportScript);
+            ProcessBuilder pb = new ProcessBuilder("/opt/bookstore/scripts/export.sh", format);
+            Process process = pb.start();
             int exitCode = process.waitFor();
 
             if (exitCode == 0) {
                 return "Export completed successfully in format: " + format;
             } else {
-                return "Export failed with exit code: " + exitCode;
+                return "Export failed";
             }
         } catch (Exception e) {
-            logger.error("Export failed: {}", e.getMessage());
-            return "Export error: " + e.getMessage();
+            logger.error("Export failed", e);
+            return "Export error occurred";
         }
     }
 }
