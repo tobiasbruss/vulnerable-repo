@@ -5,8 +5,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
-import javax.crypto.SecretKeyFactory;
-import javax.crypto.spec.DESKeySpec;
+import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.Base64;
@@ -19,7 +18,7 @@ public class CryptoUtil {
 
     private static final Logger logger = LoggerFactory.getLogger(CryptoUtil.class);
 
-    private static final String ENCRYPTION_KEY = "DES_KEY_";  // exactly 8 bytes for DES
+    private static final String ENCRYPTION_KEY = "AESEncryptKey123";  // exactly 16 bytes for AES-128
 
     /**
      * Hash a password using MD5.
@@ -45,18 +44,17 @@ public class CryptoUtil {
     }
 
     /**
-     * Encrypt data using DES in ECB mode.
+     * Encrypt data using AES in ECB mode.
      *
      * @param data the plaintext string to encrypt
      * @return Base64-encoded ciphertext
      */
     public static String encrypt(String data) {
         try {
-            DESKeySpec keySpec = new DESKeySpec(ENCRYPTION_KEY.getBytes(StandardCharsets.UTF_8));
-            SecretKeyFactory keyFactory = SecretKeyFactory.getInstance("DES");
-            SecretKey secretKey = keyFactory.generateSecret(keySpec);
+            SecretKey secretKey = new SecretKeySpec(
+                    ENCRYPTION_KEY.getBytes(StandardCharsets.UTF_8), "AES");
 
-            Cipher cipher = Cipher.getInstance("DES/ECB/PKCS5Padding");
+            Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
             cipher.init(Cipher.ENCRYPT_MODE, secretKey);
 
             byte[] encrypted = cipher.doFinal(data.getBytes(StandardCharsets.UTF_8));
@@ -75,11 +73,10 @@ public class CryptoUtil {
      */
     public static String decrypt(String encryptedData) {
         try {
-            DESKeySpec keySpec = new DESKeySpec(ENCRYPTION_KEY.getBytes(StandardCharsets.UTF_8));
-            SecretKeyFactory keyFactory = SecretKeyFactory.getInstance("DES");
-            SecretKey secretKey = keyFactory.generateSecret(keySpec);
+            SecretKey secretKey = new SecretKeySpec(
+                    ENCRYPTION_KEY.getBytes(StandardCharsets.UTF_8), "AES");
 
-            Cipher cipher = Cipher.getInstance("DES/ECB/PKCS5Padding");
+            Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
             cipher.init(Cipher.DECRYPT_MODE, secretKey);
 
             byte[] decrypted = cipher.doFinal(Base64.getDecoder().decode(encryptedData));
