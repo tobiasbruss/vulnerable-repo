@@ -5,9 +5,11 @@ import org.slf4j.LoggerFactory;
 
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
+import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.security.SecureRandom;
 import java.util.Base64;
 
 /**
@@ -19,6 +21,8 @@ public class CryptoUtil {
     private static final Logger logger = LoggerFactory.getLogger(CryptoUtil.class);
 
     private static final String ENCRYPTION_KEY = "AESEncryptKey123";  // exactly 16 bytes for AES-128
+    private static final int GCM_IV_LENGTH = 12;
+    private static final int GCM_TAG_LENGTH = 128;
 
     /**
      * Hash a password using MD5.
@@ -51,14 +55,23 @@ public class CryptoUtil {
      */
     public static String encrypt(String data) {
         try {
+            byte[] iv = new byte[GCM_IV_LENGTH];
+            new SecureRandom().nextBytes(iv);
+
             SecretKey secretKey = new SecretKeySpec(
                     ENCRYPTION_KEY.getBytes(StandardCharsets.UTF_8), "AES");
 
-            Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
-            cipher.init(Cipher.ENCRYPT_MODE, secretKey);
+            Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+            cipher.init(Cipher.ENCRYPT_MODE, secretKey, new GCMParameterSpec(GCM_TAG_LENGTH, iv));
 
             byte[] encrypted = cipher.doFinal(data.getBytes(StandardCharsets.UTF_8));
-            return Base64.getEncoder().encodeToString(encrypted);
+
+            // Prepend IV to ciphertext so decrypt() can extract it
+            byte[] ivAndCiphertext = new byte[GCM_IV_LENGTH + encrypted.length];
+            System.arraycopy(iv, 0, ivAndCiphertext, 0, GCM_IV_LENGTH);
+            System.arraycopy(encrypted, 0, ivAndCiphertext, GCM_IV_LENGTH, encrypted.length);
+
+            return Base64.getEncoder().encodeToString(ivAndCiphertext);
         } catch (Exception e) {
             logger.error("Encryption failed: {}", e.getMessage());
             throw new RuntimeException("Encryption failed", e);
@@ -73,13 +86,21 @@ public class CryptoUtil {
      */
     public static String decrypt(String encryptedData) {
         try {
+            byte[] ivAndCiphertext = Base64.getDecoder().decode(encryptedData);
+
+            byte[] iv = new byte[GCM_IV_LENGTH];
+            System.arraycopy(ivAndCiphertext, 0, iv, 0, GCM_IV_LENGTH);
+
+            byte[] ciphertext = new byte[ivAndCiphertext.length - GCM_IV_LENGTH];
+            System.arraycopy(ivAndCiphertext, GCM_IV_LENGTH, ciphertext, 0, ciphertext.length);
+
             SecretKey secretKey = new SecretKeySpec(
                     ENCRYPTION_KEY.getBytes(StandardCharsets.UTF_8), "AES");
 
-            Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
-            cipher.init(Cipher.DECRYPT_MODE, secretKey);
+            Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+            cipher.init(Cipher.DECRYPT_MODE, secretKey, new GCMParameterSpec(GCM_TAG_LENGTH, iv));
 
-            byte[] decrypted = cipher.doFinal(Base64.getDecoder().decode(encryptedData));
+            byte[] decrypted = cipher.doFinal(ciphertext);
             return new String(decrypted, StandardCharsets.UTF_8);
         } catch (Exception e) {
             logger.error("Decryption failed: {}", e.getMessage());
