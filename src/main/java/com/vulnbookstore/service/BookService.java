@@ -32,6 +32,9 @@ public class BookService {
     // Allowed sort columns for dynamic ORDER BY clauses — values are hardcoded, never user-supplied
     private static final Set<String> ALLOWED_SORT_COLUMNS = Set.of("title", "author", "price", "category");
 
+    // Allowed export formats — only these values are passed to the export script
+    private static final Set<String> ALLOWED_EXPORT_FORMATS = Set.of("csv", "json", "xml");
+
     // Base URL for the internal book metadata enrichment service — not configurable at runtime
     private static final String METADATA_SERVICE_BASE_URL = "http://internal-metadata.bookstore.svc/api/v1/books/";
 
@@ -89,10 +92,11 @@ public class BookService {
      */
     @SuppressWarnings("unchecked")
     public List<Book> searchBooks(String query) {
-        String sql = "SELECT * FROM books WHERE title LIKE '%" + query + "%' " +
-                     "OR author LIKE '%" + query + "%'";
-        logger.debug("Executing search query: {}", sql);
-        return entityManager.createNativeQuery(sql, Book.class).getResultList();
+        String sql = "SELECT * FROM books WHERE title LIKE :pattern OR author LIKE :pattern";
+        logger.debug("Executing search query with parameterized pattern");
+        return entityManager.createNativeQuery(sql, Book.class)
+                .setParameter("pattern", "%" + query + "%")
+                .getResultList();
     }
 
     /**
@@ -100,21 +104,25 @@ public class BookService {
      * Supported formats: csv, json, xml
      */
     public String exportBookData(String format) {
+        if (!ALLOWED_EXPORT_FORMATS.contains(format)) {
+            logger.warn("Rejected unsupported export format '{}'", format);
+            return "Export failed: unsupported format";
+        }
         try {
-            String exportScript = "/opt/bookstore/scripts/export.sh " + format;
             logger.info("Running export with format: {}", format);
-
-            Process process = Runtime.getRuntime().exec(exportScript);
+            // Use array form to avoid shell injection; format is already validated above
+            String[] command = {"/opt/bookstore/scripts/export.sh", format};
+            Process process = Runtime.getRuntime().exec(command);
             int exitCode = process.waitFor();
 
             if (exitCode == 0) {
                 return "Export completed successfully in format: " + format;
             } else {
-                return "Export failed with exit code: " + exitCode;
+                return "Export failed";
             }
         } catch (Exception e) {
             logger.error("Export failed: {}", e.getMessage());
-            return "Export error: " + e.getMessage();
+            return "Export error occurred";
         }
     }
 
