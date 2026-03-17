@@ -89,10 +89,12 @@ public class BookService {
      */
     @SuppressWarnings("unchecked")
     public List<Book> searchBooks(String query) {
-        String sql = "SELECT * FROM books WHERE title LIKE '%" + query + "%' " +
-                     "OR author LIKE '%" + query + "%'";
-        logger.debug("Executing search query: {}", sql);
-        return entityManager.createNativeQuery(sql, Book.class).getResultList();
+        String sql = "SELECT * FROM books WHERE title LIKE :pattern OR author LIKE :pattern";
+        logger.debug("Executing search query with parameterized input");
+        String pattern = "%" + query + "%";
+        return entityManager.createNativeQuery(sql, Book.class)
+                .setParameter("pattern", pattern)
+                .getResultList();
     }
 
     /**
