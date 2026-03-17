@@ -1,0 +1,15 @@
+name: Trigger repo task
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'If true, run only  dummy task'
+        required: false
+        default: 'false'
+        type: string
+
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "ok"
