@@ -103,12 +103,12 @@ class CryptoUtilTest {
     }
 
     @Test
-    @DisplayName("encrypt() uses a random IV — same input produces different ciphertexts (CBC mode)")
+    @DisplayName("encrypt() uses a random IV — same input produces different ciphertexts (GCM mode)")
     void encrypt_isNonDeterministic_dueToRandomIv() {
         String encrypted1 = CryptoUtil.encrypt("same data");
         String encrypted2 = CryptoUtil.encrypt("same data");
 
-        // AES/CBC with a random IV must produce different ciphertexts for the same plaintext
+        // AES/GCM with a random IV must produce different ciphertexts for the same plaintext
         assertNotEquals(encrypted1, encrypted2);
     }
 
