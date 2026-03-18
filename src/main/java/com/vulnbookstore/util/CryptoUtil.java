@@ -5,10 +5,12 @@ import org.slf4j.LoggerFactory;
 
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
-import javax.crypto.SecretKeyFactory;
-import javax.crypto.spec.DESKeySpec;
+import javax.crypto.spec.GCMParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.security.SecureRandom;
+import java.util.Arrays;
 import java.util.Base64;
 
 /**
@@ -19,7 +21,7 @@ public class CryptoUtil {
 
     private static final Logger logger = LoggerFactory.getLogger(CryptoUtil.class);
 
-    private static final String ENCRYPTION_KEY = "DES_KEY_";  // exactly 8 bytes for DES
+    private static final byte[] ENCRYPTION_KEY = "AES_KEY_16BYTES!".getBytes(StandardCharsets.UTF_8);  // 16 bytes for AES-128
 
     /**
      * Hash a password using MD5.
@@ -45,22 +47,31 @@ public class CryptoUtil {
     }
 
     /**
-     * Encrypt data using DES in ECB mode.
+     * Encrypt data using AES in GCM mode with a random IV.
+     * The IV is prepended to the ciphertext before Base64 encoding.
      *
      * @param data the plaintext string to encrypt
-     * @return Base64-encoded ciphertext
+     * @return Base64-encoded IV + ciphertext
      */
     public static String encrypt(String data) {
         try {
-            DESKeySpec keySpec = new DESKeySpec(ENCRYPTION_KEY.getBytes(StandardCharsets.UTF_8));
-            SecretKeyFactory keyFactory = SecretKeyFactory.getInstance("DES");
-            SecretKey secretKey = keyFactory.generateSecret(keySpec);
+            SecretKey secretKey = new SecretKeySpec(ENCRYPTION_KEY, "AES");
 
-            Cipher cipher = Cipher.getInstance("DES/ECB/PKCS5Padding");
-            cipher.init(Cipher.ENCRYPT_MODE, secretKey);
+            byte[] iv = new byte[12];
+            new SecureRandom().nextBytes(iv);
+            GCMParameterSpec gcmSpec = new GCMParameterSpec(128, iv);
+
+            Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+            cipher.init(Cipher.ENCRYPT_MODE, secretKey, gcmSpec);
 
             byte[] encrypted = cipher.doFinal(data.getBytes(StandardCharsets.UTF_8));
-            return Base64.getEncoder().encodeToString(encrypted);
+
+            // Prepend IV to ciphertext so decrypt() can recover it
+            byte[] ivAndEncrypted = new byte[iv.length + encrypted.length];
+            System.arraycopy(iv, 0, ivAndEncrypted, 0, iv.length);
+            System.arraycopy(encrypted, 0, ivAndEncrypted, iv.length, encrypted.length);
+
+            return Base64.getEncoder().encodeToString(ivAndEncrypted);
         } catch (Exception e) {
             logger.error("Encryption failed: {}", e.getMessage());
             throw new RuntimeException("Encryption failed", e);
@@ -69,20 +80,25 @@ public class CryptoUtil {
 
     /**
      * Decrypt data that was encrypted with {@link #encrypt(String)}.
+     * Expects Base64-encoded IV (first 12 bytes) followed by ciphertext.
      *
-     * @param encryptedData Base64-encoded ciphertext
+     * @param encryptedData Base64-encoded IV + ciphertext
      * @return decrypted plaintext string
      */
     public static String decrypt(String encryptedData) {
         try {
-            DESKeySpec keySpec = new DESKeySpec(ENCRYPTION_KEY.getBytes(StandardCharsets.UTF_8));
-            SecretKeyFactory keyFactory = SecretKeyFactory.getInstance("DES");
-            SecretKey secretKey = keyFactory.generateSecret(keySpec);
+            byte[] ivAndEncrypted = Base64.getDecoder().decode(encryptedData);
 
-            Cipher cipher = Cipher.getInstance("DES/ECB/PKCS5Padding");
-            cipher.init(Cipher.DECRYPT_MODE, secretKey);
+            byte[] iv = Arrays.copyOfRange(ivAndEncrypted, 0, 12);
+            byte[] encrypted = Arrays.copyOfRange(ivAndEncrypted, 12, ivAndEncrypted.length);
 
-            byte[] decrypted = cipher.doFinal(Base64.getDecoder().decode(encryptedData));
+            SecretKey secretKey = new SecretKeySpec(ENCRYPTION_KEY, "AES");
+            GCMParameterSpec gcmSpec = new GCMParameterSpec(128, iv);
+
+            Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+            cipher.init(Cipher.DECRYPT_MODE, secretKey, gcmSpec);
+
+            byte[] decrypted = cipher.doFinal(encrypted);
             return new String(decrypted, StandardCharsets.UTF_8);
         } catch (Exception e) {
             logger.error("Decryption failed: {}", e.getMessage());
