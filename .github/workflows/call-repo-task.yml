@@ -17,7 +17,7 @@ jobs:
       dry_run: ${{ inputs.dry_run }}
       runner: ubuntu-latest
     secrets:
-      GHAS_TOKEN:       ${{ secrets.GHAS_TOKEN }}
+      GHAS_TOKEN:       ${{ secrets.GITHUB_TOKEN}}
       EXTERNAL_API_KEY: ${{ secrets.EXTERNAL_API_KEY }}
 
 
