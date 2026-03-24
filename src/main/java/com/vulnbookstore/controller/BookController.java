@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * REST controller for Book management endpoints.
@@ -17,6 +18,8 @@ import java.util.Map;
 @RequestMapping("/api/books")
 @RequiredArgsConstructor
 public class BookController {
+
+    private static final Set<String> ALLOWED_EXPORT_FORMATS = Set.of("csv", "json", "xml");
 
     private final BookService bookService;
 
@@ -89,6 +92,9 @@ public class BookController {
      */
     @GetMapping("/export")
     public ResponseEntity<String> exportBooks(@RequestParam("format") String format) {
+        if (!ALLOWED_EXPORT_FORMATS.contains(format)) {
+            return ResponseEntity.badRequest().body("Invalid format. Allowed values: csv, json, xml");
+        }
         String result = bookService.exportBookData(format);
         return ResponseEntity.ok(result);
     }
