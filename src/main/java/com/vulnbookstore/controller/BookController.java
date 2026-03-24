@@ -90,7 +90,9 @@ public class BookController {
     @GetMapping("/export")
     public ResponseEntity<String> exportBooks(@RequestParam("format") String format) {
         String result = bookService.exportBookData(format);
-        return ResponseEntity.ok(result);
+        return ResponseEntity.ok()
+                .header("Content-Type", "text/plain; charset=UTF-8")
+                .body(result);
     }
 
     /**
