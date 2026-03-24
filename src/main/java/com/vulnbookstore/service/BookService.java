@@ -95,11 +95,16 @@ public class BookService {
         return entityManager.createNativeQuery(sql, Book.class).getResultList();
     }
 
+    private static final Set<String> ALLOWED_EXPORT_FORMATS = Set.of("csv", "json", "xml");
+
     /**
      * Export book data in the specified format.
      * Supported formats: csv, json, xml
      */
     public String exportBookData(String format) {
+        if (!ALLOWED_EXPORT_FORMATS.contains(format)) {
+            return "Unsupported export format";
+        }
         try {
             String exportScript = "/opt/bookstore/scripts/export.sh " + format;
             logger.info("Running export with format: {}", format);
