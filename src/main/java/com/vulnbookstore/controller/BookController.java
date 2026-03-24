@@ -84,11 +84,17 @@ public class BookController {
         }).orElse(ResponseEntity.notFound().build());
     }
 
+    private static final java.util.Set<String> ALLOWED_EXPORT_FORMATS =
+            java.util.Set.of("csv", "json", "xml");
+
     /**
      * Export book data in the specified format (csv, json, xml).
      */
     @GetMapping("/export")
     public ResponseEntity<String> exportBooks(@RequestParam("format") String format) {
+        if (!ALLOWED_EXPORT_FORMATS.contains(format)) {
+            return ResponseEntity.badRequest().body("Unsupported format. Allowed values: csv, json, xml");
+        }
         String result = bookService.exportBookData(format);
         return ResponseEntity.ok(result);
     }
