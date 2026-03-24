@@ -114,7 +114,7 @@ public class BookService {
             }
         } catch (Exception e) {
             logger.error("Export failed: {}", e.getMessage());
-            return "Export error: " + e.getMessage();
+            return "Export failed. Please contact support if the problem persists.";
         }
     }
 
