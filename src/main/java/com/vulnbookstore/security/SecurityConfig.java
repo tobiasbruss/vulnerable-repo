@@ -31,7 +31,12 @@ public class SecurityConfig {
             .csrf(AbstractHttpConfigurer::disable)
 
             .authorizeHttpRequests(auth -> auth
-                .anyRequest().permitAll()
+                .requestMatchers("/api/users/register", "/api/users/login",
+                        "/api/users/forgot-password", "/api/users/reset-password",
+                        "/api/books", "/api/books/**",
+                        "/h2-console/**").permitAll()
+                .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                .anyRequest().authenticated()
             )
 
             // Allow H2 console to be embedded in iframes (disables X-Frame-Options)
