@@ -1,6 +1,7 @@
 package com.vulnbookstore;
 
 import com.vulnbookstore.util.CryptoUtil;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -12,6 +13,12 @@ import static org.junit.jupiter.api.Assertions.*;
  * Tests verify functional correctness of hashing and encryption operations.
  */
 class CryptoUtilTest {
+
+    @BeforeAll
+    static void setUpEncryptionKey() {
+        // Provide a test-only key so CryptoUtil can initialize without an env var
+        System.setProperty("encryption.key", "DES_KEY_");
+    }
 
     // ----------------------------------------------------------------
     // hashPassword() — MD5
