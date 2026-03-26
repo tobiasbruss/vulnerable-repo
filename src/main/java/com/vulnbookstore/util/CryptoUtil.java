@@ -19,7 +19,19 @@ public class CryptoUtil {
 
     private static final Logger logger = LoggerFactory.getLogger(CryptoUtil.class);
 
-    private static final String ENCRYPTION_KEY = "DES_KEY_";  // exactly 8 bytes for DES
+    private static final String ENCRYPTION_KEY;
+
+    static {
+        String key = System.getenv("ENCRYPTION_KEY");
+        if (key == null) {
+            key = System.getProperty("encryption.key");
+        }
+        if (key == null) {
+            throw new IllegalStateException(
+                    "Encryption key not configured: set the ENCRYPTION_KEY environment variable or encryption.key system property");
+        }
+        ENCRYPTION_KEY = key;
+    }
 
     /**
      * Hash a password using MD5.
