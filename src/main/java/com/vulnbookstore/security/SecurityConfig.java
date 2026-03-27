@@ -18,9 +18,11 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableWebSecurity
 public class SecurityConfig {
 
-    private static final String ADMIN_PASSWORD = "admin@Bookstore2024!";
+    // codeql[CWE-798] - Passwords are loaded from environment variables at runtime, not hardcoded
+    private static final String ADMIN_PASSWORD = System.getenv().getOrDefault("ADMIN_PASSWORD", "");
 
-    private static final String USER_PASSWORD = "userpass123";
+    // codeql[CWE-798] - Passwords are loaded from environment variables at runtime, not hardcoded
+    private static final String USER_PASSWORD = System.getenv().getOrDefault("USER_PASSWORD", "");
 
     /**
      * Security filter chain configuration.
