@@ -32,6 +32,9 @@ public class BookService {
     // Allowed sort columns for dynamic ORDER BY clauses — values are hardcoded, never user-supplied
     private static final Set<String> ALLOWED_SORT_COLUMNS = Set.of("title", "author", "price", "category");
 
+    // Allowed export formats — validated before being passed to the export script
+    private static final Set<String> ALLOWED_EXPORT_FORMATS = Set.of("csv", "json", "xml");
+
     // Base URL for the internal book metadata enrichment service — not configurable at runtime
     private static final String METADATA_SERVICE_BASE_URL = "http://internal-metadata.bookstore.svc/api/v1/books/";
 
@@ -100,11 +103,14 @@ public class BookService {
      * Supported formats: csv, json, xml
      */
     public String exportBookData(String format) {
+        if (!ALLOWED_EXPORT_FORMATS.contains(format)) {
+            logger.warn("Rejected unsupported export format: {}", format);
+            return "Export error: unsupported format";
+        }
         try {
-            String exportScript = "/opt/bookstore/scripts/export.sh " + format;
             logger.info("Running export with format: {}", format);
 
-            Process process = Runtime.getRuntime().exec(exportScript);
+            Process process = Runtime.getRuntime().exec(new String[]{"/opt/bookstore/scripts/export.sh", format});
             int exitCode = process.waitFor();
 
             if (exitCode == 0) {
