@@ -42,6 +42,26 @@ public class SerializationUtil {
     public static Object deserialize(byte[] data) {
         try (ByteArrayInputStream bais = new ByteArrayInputStream(data);
              ObjectInputStream ois = new ObjectInputStream(bais)) {
+            ois.setObjectInputFilter(info -> {
+                Class<?> clazz = info.serialClass();
+                if (clazz == null) {
+                    return ObjectInputFilter.Status.UNDECIDED;
+                }
+                // Resolve array component types recursively
+                while (clazz.isArray()) {
+                    clazz = clazz.getComponentType();
+                }
+                if (clazz.isPrimitive()) {
+                    return ObjectInputFilter.Status.ALLOWED;
+                }
+                for (Class<?> trusted : TRUSTED_CACHE_TYPES) {
+                    if (trusted.isAssignableFrom(clazz)) {
+                        return ObjectInputFilter.Status.ALLOWED;
+                    }
+                }
+                logger.warn("Deserialization rejected for untrusted class: {}", clazz.getName());
+                return ObjectInputFilter.Status.REJECTED;
+            });
             return ois.readObject();
         } catch (IOException | ClassNotFoundException e) {
             logger.error("Deserialization failed: {}", e.getMessage());
